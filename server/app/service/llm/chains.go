@@ -12,6 +12,10 @@ type ChatChains struct {
 
 	Req *_type.Request
 	Res *_type.Response
+
+	Provider _type.Provider `json:"provider"`
+	Host     string         `json:"host"`
+	ApiKey   string         `json:"apiKey"`
 }
 
 func (c *ChatChains) Chat(req *_type.Request) (*_type.Response, error) {
@@ -19,14 +23,8 @@ func (c *ChatChains) Chat(req *_type.Request) (*_type.Response, error) {
 
 	c.Context.Reset(-1)
 
-	c.Context.Use(func(chains *ChatChains) error {
-		res, err := Chat(chains.Req)
-		if err != nil {
-			return err
-		}
-		chains.Res = res
-		return nil
-	})
+	c.Context.Use(makeRequest)
+	c.Context.Use(Chat)
 
 	err := c.Context.Next(c)
 
