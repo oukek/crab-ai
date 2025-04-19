@@ -1,0 +1,82 @@
+package db
+
+import (
+	"fmt"
+	"log"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/joho/godotenv"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+var (
+	instance *gorm.DB
+	once     sync.Once
+)
+
+// 初始化数据库连接
+func Init() {
+	once.Do(func() {
+		// 加载环境变量
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("Error loading .env file, using default settings")
+		}
+
+		// 从环境变量获取数据库文件路径
+		dbPath := os.Getenv("DB_FILE_PATH")
+		if dbPath == "" {
+			dbPath = "./data.db" // 默认路径
+		}
+
+		// 配置自定义日志记录器
+		newLogger := logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,
+				LogLevel:                  logger.Info,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			},
+		)
+
+		// 连接到SQLite数据库
+		db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+			Logger: newLogger,
+		})
+
+		if err != nil {
+			panic(fmt.Sprintf("无法连接到数据库: %v", err))
+		}
+
+		// 设置连接池参数
+		sqlDB, err := db.DB()
+		if err != nil {
+			panic(fmt.Sprintf("获取数据库连接失败: %v", err))
+		}
+
+		sqlDB.SetMaxIdleConns(10)
+		sqlDB.SetMaxOpenConns(100)
+		sqlDB.SetConnMaxLifetime(time.Hour)
+
+		instance = db
+		log.Println("数据库连接成功：", dbPath)
+	})
+}
+
+// GetDB 获取数据库实例
+func GetDB() *gorm.DB {
+	if instance == nil {
+		Init()
+	}
+	return instance
+}
+
+// AutoMigrate 自动迁移数据库结构
+func AutoMigrate(models ...interface{}) error {
+	return GetDB().AutoMigrate(models...)
+} 

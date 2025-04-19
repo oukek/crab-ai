@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"oukek/crab-ai/app/router"
+	"oukek/crab-ai/app/service/db"
 )
 
 var graceful *bool
@@ -23,6 +24,9 @@ var serverCmd = &cobra.Command{
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		savePid()
+		// 初始化数据库
+		db.InitializeDatabase()
+		// 启动服务
 		startServer()
 	},
 }
