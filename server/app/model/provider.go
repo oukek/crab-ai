@@ -6,6 +6,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// ProviderType 服务商类型
+// 支持的服务商常量
+const (
+	ProviderTypeGoogleAIStudio ProviderType = "GOOGLE_AI_STUDIO"
+)
+
+type ProviderType string
+
 // Provider 提供商模型
 type Provider struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
@@ -14,6 +22,7 @@ type Provider struct {
 	ApiSecret string         `gorm:"type:varchar(255);comment:API密钥" json:"api_secret"`
 	BaseUrl   string         `gorm:"type:varchar(255);comment:基础URL" json:"base_url"`
 	Status    int            `gorm:"type:tinyint;default:1;comment:状态 1:启用 0:禁用" json:"status"`
+	Type      ProviderType   `gorm:"type:varchar(50);not null;default:'GOOGLE_AI_STUDIO';comment:服务商类型" json:"type"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -22,4 +31,4 @@ type Provider struct {
 // TableName 指定表名
 func (Provider) TableName() string {
 	return "providers"
-} 
+}

@@ -1,8 +1,10 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
+	"oukek/crab-ai/app/controller"
 	"oukek/crab-ai/app/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 var routerInstance *gin.Engine
@@ -33,5 +35,15 @@ func GetRouter() *gin.Engine {
 	r.GET("/ping", func(context *gin.Context) {
 		context.String(200, "pong")
 	})
+
+	apiGroup := r.Group("/api")
+	{
+		providerController := &controller.ProviderController{}
+		providerController.RegisterRoutes(apiGroup)
+
+		promptController := &controller.PromptController{}
+		promptController.RegisterRoutes(apiGroup)
+	}
+
 	return routerInstance
 }

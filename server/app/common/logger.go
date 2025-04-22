@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -9,8 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lestrrat-go/file-rotatelogs"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm/logger"
 )
 
 var LevelMap = map[string]logrus.Level{
@@ -89,4 +91,38 @@ func New(filePath string, fileName string, level string, std io.Writer, count ui
 	}
 	// logger.SetReportCaller(true)   // 测试环境可以开启，生产环境不能开，会增加很大开销
 	return logger, nil
+}
+
+type GormLogger struct {
+	Log *logrus.Logger
+}
+
+func (l *GormLogger) LogMode(level logger.LogLevel) logger.Interface {
+	return l // 简单实现，按需扩展
+}
+func (l *GormLogger) Info(ctx context.Context, msg string, data ...interface{}) {
+	l.Log.Infof(msg, data...)
+}
+func (l *GormLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
+	l.Log.Warnf(msg, data...)
+}
+func (l *GormLogger) Error(ctx context.Context, msg string, data ...interface{}) {
+	l.Log.Errorf(msg, data...)
+}
+func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	elapsed := time.Since(begin)
+	sql, rows := fc()
+	if err != nil {
+		l.Log.WithFields(logrus.Fields{
+			"elapsed": elapsed,
+			"rows":    rows,
+			"sql":     sql,
+		}).Error(err)
+	} else {
+		l.Log.WithFields(logrus.Fields{
+			"elapsed": elapsed,
+			"rows":    rows,
+			"sql":     sql,
+		}).Info("SQL executed")
+	}
 }

@@ -42,4 +42,28 @@ func (s *ProviderService) GetActiveProviders() ([]model.Provider, error) {
 	var providers []model.Provider
 	result := db.GetDB().Where("status = ?", 1).Find(&providers)
 	return providers, result.Error
-} 
+}
+
+// GetModelsByProviderID 获取指定服务商的所有模型
+func (s *ProviderService) GetModelsByProviderID(providerID uint) ([]model.AIModel, error) {
+	var models []model.AIModel
+	result := db.GetDB().Where("provider_id = ?", providerID).Find(&models)
+	return models, result.Error
+}
+
+type ProviderDetail struct {
+	model.Provider
+	Models []model.AIModel `json:"models"`
+}
+
+func (s *ProviderService) GetProviderDetailByID(id uint) (ProviderDetail, error) {
+	var provider model.Provider
+	if err := db.GetDB().First(&provider, id).Error; err != nil {
+		return ProviderDetail{}, err
+	}
+	models, err := s.GetModelsByProviderID(id)
+	if err != nil {
+		return ProviderDetail{}, err
+	}
+	return ProviderDetail{Provider: provider, Models: models}, nil
+}

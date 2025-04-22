@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"oukek/crab-ai/app/common"
+
 	"github.com/joho/godotenv"
 	"github.com/ncruces/go-sqlite3/gormlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 var (
@@ -33,20 +34,9 @@ func Init() {
 			dbPath = "./data.db" // 默认路径
 		}
 
-		// 配置自定义日志记录器
-		newLogger := logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
-			logger.Config{
-				SlowThreshold:             time.Second,
-				LogLevel:                  logger.Info,
-				IgnoreRecordNotFoundError: true,
-				Colorful:                  true,
-			},
-		)
-
 		// 连接到SQLite数据库
 		db, err := gorm.Open(gormlite.Open(dbPath), &gorm.Config{
-			Logger: newLogger,
+			Logger: &common.GormLogger{Log: common.BaseLogger},
 		})
 
 		if err != nil {

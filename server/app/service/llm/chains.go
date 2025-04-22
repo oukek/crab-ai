@@ -14,8 +14,6 @@ type ChatChains struct {
 	Res *_type.Response
 
 	Provider _type.Provider `json:"provider"`
-	Host     string         `json:"host"`
-	ApiKey   string         `json:"apiKey"`
 }
 
 func (c *ChatChains) Chat(req *_type.Request) (*_type.Response, error) {
