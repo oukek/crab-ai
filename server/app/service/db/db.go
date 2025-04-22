@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"gorm.io/driver/sqlite"
+	"github.com/ncruces/go-sqlite3/gormlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -45,7 +45,7 @@ func Init() {
 		)
 
 		// 连接到SQLite数据库
-		db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		db, err := gorm.Open(gormlite.Open(dbPath), &gorm.Config{
 			Logger: newLogger,
 		})
 
@@ -79,4 +79,4 @@ func GetDB() *gorm.DB {
 // AutoMigrate 自动迁移数据库结构
 func AutoMigrate(models ...interface{}) error {
 	return GetDB().AutoMigrate(models...)
-} 
+}
