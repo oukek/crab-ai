@@ -1,17 +1,17 @@
-package provider
+package llm
 
 import (
 	"encoding/json"
 	"net/http"
 	"oukek/crab-ai/app/common"
-	"oukek/crab-ai/app/service/llm/type"
+	_type "oukek/crab-ai/app/service/llm/type"
 	"strings"
 )
 
 func makeRequestGoogleAIStudio(chains any) error {
-	c := chains.(*type.ChatChains) // 断言类型
+	c := chains.(*ChatChains) // 断言类型
 	isStream := c.Req.Stream != nil && *c.Req.Stream
-	geminiReq, err := type.NewGeminiReqFromRequest(c.Req)
+	geminiReq, err := _type.NewGeminiReqFromRequest(c.Req)
 	if err != nil {
 		return err
 	}
@@ -39,15 +39,3 @@ func makeRequestGoogleAIStudio(chains any) error {
 	c.Set("req", req)
 	return nil
 }
-
-// MakeRequest 分发入口
-func MakeRequest(chains any) error {
-	c := chains.(*type.ChatChains)
-	switch c.Provider.Type {
-	case "GOOGLE_AI_STUDIO":
-		return makeRequestGoogleAIStudio(chains)
-	default:
-		c.Set("reqBody", c.Req)
-		return nil
-	}
-} 

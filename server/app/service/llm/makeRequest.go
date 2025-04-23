@@ -1,10 +1,16 @@
 package llm
 
 import (
-	"oukek/crab-ai/app/service/llm/provider"
+	"oukek/crab-ai/app/model"
 )
 
-// 根据不同的模型，将其转为json数据
-func makeRequest(chains *ChatChains) error {
-	return provider.MakeRequest(chains)
+// MakeRequest 分发入口
+func MakeRequest(chains *ChatChains) error {
+	switch chains.Provider.Type {
+	case model.ProviderTypeGoogleAIStudio:
+		return makeRequestGoogleAIStudio(chains)
+	default:
+		chains.Set("reqBody", chains.Req)
+		return nil
+	}
 }

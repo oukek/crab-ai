@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"oukek/crab-ai/app/model"
 	"oukek/crab-ai/app/service/chains"
 	_type "oukek/crab-ai/app/service/llm/type"
 
@@ -13,7 +14,7 @@ type ChatChains struct {
 	Req *_type.Request
 	Res *_type.Response
 
-	Provider _type.Provider `json:"provider"`
+	Provider model.Provider `json:"provider"`
 }
 
 func (c *ChatChains) Chat(req *_type.Request) (*_type.Response, error) {
@@ -21,7 +22,7 @@ func (c *ChatChains) Chat(req *_type.Request) (*_type.Response, error) {
 
 	c.Context.Reset(-1)
 
-	c.Context.Use(makeRequest)
+	c.Context.Use(MakeRequest)
 	c.Context.Use(Chat)
 
 	err := c.Context.Next(c)

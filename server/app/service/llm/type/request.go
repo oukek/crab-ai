@@ -3,7 +3,7 @@ package _type
 type Request struct {
 	Messages []Message `json:"messages,omitempty"`
 	// 模型名
-	Model          Model           `json:"model"`
+	Model          string          `json:"model"`
 	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
 	// 是否使用流式
 	Stream      *bool    `json:"stream,omitempty"`

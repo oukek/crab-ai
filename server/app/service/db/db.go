@@ -3,13 +3,12 @@ package db
 import (
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
 	"oukek/crab-ai/app/common"
+	"oukek/crab-ai/app/service/env"
 
-	"github.com/joho/godotenv"
 	"github.com/ncruces/go-sqlite3/gormlite"
 	"gorm.io/gorm"
 )
@@ -22,14 +21,7 @@ var (
 // 初始化数据库连接
 func Init() {
 	once.Do(func() {
-		// 加载环境变量
-		err := godotenv.Load()
-		if err != nil {
-			log.Println("Error loading .env file, using default settings")
-		}
-
-		// 从环境变量获取数据库文件路径
-		dbPath := os.Getenv("DB_FILE_PATH")
+		dbPath := env.Get("DB_FILE_PATH")
 		if dbPath == "" {
 			dbPath = "./data.db" // 默认路径
 		}

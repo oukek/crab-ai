@@ -13,7 +13,8 @@ func InitializeDatabase() {
 	// 自动迁移表结构
 	err := AutoMigrate(
 		&model.Provider{},
-		// 这里可以添加其他模型
+		&model.AIModel{},
+		&model.Prompt{},
 	)
 
 	if err != nil {
@@ -21,4 +22,4 @@ func InitializeDatabase() {
 	}
 
 	log.Println("数据库迁移完成")
-} 
+}

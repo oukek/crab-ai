@@ -43,6 +43,9 @@ func GetRouter() *gin.Engine {
 
 		promptController := &controller.PromptController{}
 		promptController.RegisterRoutes(apiGroup)
+
+		chatController := &controller.ChatController{}
+		chatController.RegisterRoutes(apiGroup)
 	}
 
 	return routerInstance

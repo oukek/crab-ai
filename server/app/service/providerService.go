@@ -67,3 +67,32 @@ func (s *ProviderService) GetProviderDetailByID(id uint) (ProviderDetail, error)
 	}
 	return ProviderDetail{Provider: provider, Models: models}, nil
 }
+
+// CreateModel 创建模型
+func (s *ProviderService) CreateModel(model *model.AIModel) error {
+	return db.GetDB().Create(model).Error
+}
+
+// UpdateModel 更新模型
+func (s *ProviderService) UpdateModel(model *model.AIModel) error {
+	return db.GetDB().Save(model).Error
+}
+
+// DeleteModel 删除模型
+func (s *ProviderService) DeleteModel(id uint) error {
+	return db.GetDB().Delete(&model.AIModel{}, id).Error
+}
+
+// GetModelByID 根据ID获取模型
+func (s *ProviderService) GetModelByID(id uint) (model.AIModel, error) {
+	var m model.AIModel
+	result := db.GetDB().First(&m, id)
+	return m, result.Error
+}
+
+// GetAllModels 获取所有模型
+func (s *ProviderService) GetAllModels() ([]model.AIModel, error) {
+	var models []model.AIModel
+	result := db.GetDB().Find(&models)
+	return models, result.Error
+}
