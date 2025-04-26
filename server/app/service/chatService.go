@@ -37,7 +37,7 @@ func Chat(c *gin.Context) {
 	}
 
 	// 初始化 llmReq
-	llmReq := &_type.Request{
+	llmReq := &_type.ChatRequest{
 		Messages: []_type.Message{
 			{
 				Role:    _type.UserRole,

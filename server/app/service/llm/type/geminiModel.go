@@ -84,12 +84,15 @@ func WithSafetySettingNoBlock() []GeminiReqSafetySetting {
 	}
 }
 
-func NewGeminiReqFromRequest(req *Request) (*GeminiReq, error) {
+// NewGeminiReqFromChatRequest converts a generic ChatRequest to a Gemini specific request.
+func NewGeminiReqFromChatRequest(req *ChatRequest) (*GeminiReq, error) {
 	geminiReq := &GeminiReq{
 		Contents:       []GeminiReqContent{},
 		SafetySettings: WithSafetySettingNoBlock(),
 		GenerationConfig: &GenerationConfig{
 			MaxOutputTokens: req.MaxTokens,
+			Temperature:     req.Temperature,
+			TopP:            req.TopP,
 		},
 	}
 	// 如果是json的话，则设置返回格式为json
@@ -211,15 +214,37 @@ type GeminiStreamItem struct {
 			Probability string `json:"probability"`
 		} `json:"safetyRatings"`
 	} `json:"candidates"`
+	Error          *Error          `json:"error,omitempty"`
+	PromptFeedback *PromptFeedback `json:"promptFeedback,omitempty"`
+	UsageMetadata  *UsageMetadata  `json:"usageMetadata,omitempty"`
 }
 
 func (g *GeminiStreamItem) ToStreamItem(modelName string) *StreamItem {
-	// 转为gpt stream item
+	// 转为通用 stream item
 	gptItem := &StreamItem{
-		Id:      "1",
+		Id:      fmt.Sprintf("gemini-chunk-%d", time.Now().UnixNano()), // Generate pseudo chunk ID
 		Object:  "chat.completion.chunk",
-		Created: int(time.Now().Unix()),
+		Created: time.Now().Unix(), // Use int64 directly
 		Model:   modelName,
+	}
+
+	// Handle potential stream-level error or feedback
+	if g.Error != nil {
+		gptItem.Error = g.Error
+		return gptItem // Return immediately as it's an error chunk
+	}
+	if g.PromptFeedback != nil && g.PromptFeedback.BlockReason != "" {
+		gptItem.Error = NewError("", fmt.Sprintf("Prompt blocked: %s", g.PromptFeedback.BlockReason), "prompt_blocked", nil)
+		// Map safety ratings if needed
+		return gptItem
+	}
+	// Update usage if present in the chunk
+	if g.UsageMetadata != nil {
+		gptItem.Usage = &Usage{
+			PromptTokens:     g.UsageMetadata.PromptTokenCount,
+			CompletionTokens: g.UsageMetadata.CandidatesTokenCount, // Gemini uses candidatesTokenCount
+			TotalTokens:      g.UsageMetadata.TotalTokenCount,
+		}
 	}
 
 	for _, candidate := range g.Candidates {
@@ -228,12 +253,15 @@ func (g *GeminiStreamItem) ToStreamItem(modelName string) *StreamItem {
 			contentParts = append(contentParts, part.Text)
 		}
 
-		choice := StreamItemChoice{
-			Delta: StreamItemChoiceDelta{
+		// Use the types from response.go
+		choice := StreamingChoice{ // Use StreamingChoice
+			Delta: &Delta{ // Use Delta
 				Content: strings.Join(contentParts, ""),
+				Role:    "assistant", // Map role if available and needed (g.Content.Role?)
 			},
 			Index:        candidate.Index,
 			FinishReason: candidate.FinishReason,
+			// TODO: Map SafetyRatings to ContentFilterResults if needed
 		}
 
 		gptItem.Choices = append(gptItem.Choices, choice)

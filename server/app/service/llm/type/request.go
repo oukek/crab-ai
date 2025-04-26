@@ -1,11 +1,12 @@
 package _type
 
-type Request struct {
+// ChatRequest represents the request structure for chat completion.
+type ChatRequest struct {
 	Messages []Message `json:"messages,omitempty"`
 	// 模型名
 	Model          string          `json:"model"`
 	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
-	// 是否使用流式
+	// 是否使用流式 (Note: Streaming behavior is often handled by endpoint/method, not just a flag)
 	Stream      *bool    `json:"stream,omitempty"`
 	MaxTokens   *int     `json:"max_tokens,omitempty"`
 	Temperature *float64 `json:"temperature,omitempty"`
@@ -21,6 +22,15 @@ type Request struct {
 	RepetitionPenalty *float64        `json:"repetition_penalty,omitempty"`
 	Seed              *int            `json:"seed,omitempty"`
 	LogitBias         map[int]float64 `json:"logit_bias,omitempty"`
+}
+
+// EmbeddingsRequest represents the request structure for creating embeddings.
+type EmbeddingsRequest struct {
+	Input          any    `json:"input"` // Can be string or []string
+	Model          string `json:"model"`
+	EncodingFormat string `json:"encoding_format,omitempty"` // e.g., "float", "base64"
+	Dimensions     int    `json:"dimensions,omitempty"`
+	User           string `json:"user,omitempty"`
 }
 
 type Message struct {

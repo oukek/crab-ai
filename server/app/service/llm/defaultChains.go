@@ -7,12 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SimpleChatWithReq(c *gin.Context, req *_type.Request, provider model.Provider) (*_type.Response, error) {
+func SimpleChatWithReq(c *gin.Context, req *_type.ChatRequest, provider model.Provider) (*_type.Response, error) {
 
-	chains := NewChatChains(
-		MakeRequest,
-		MakeResponse,
-	)
+	chains := NewChatChains()
 	chains.Provider = provider
 	var res *_type.Response
 	var err error

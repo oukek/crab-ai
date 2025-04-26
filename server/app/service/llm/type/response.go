@@ -13,13 +13,54 @@ type Response struct {
 	PromptFilterResults []PromptFilterResults `json:"prompt_filter_results" mapstructure:"prompt_filter_results"`
 }
 
-type StreamResponse struct {
-	ID      string            `json:"id"`
-	Choices []StreamingChoice `json:"choices"`
-	Created int64             `json:"created"`
-	Model   string            `json:"model"`
-	Object  string            `json:"object"`
-	Usage   *Usage            `json:"usage"`
+// StreamItem represents a single chunk in a streaming response.
+type StreamItem struct {
+	Id      string            `json:"id" mapstructure:"id"` // Note: Field name is Id, json tag is id
+	Choices []StreamingChoice `json:"choices" mapstructure:"choices"`
+	Created int64             `json:"created" mapstructure:"created"`
+	Model   string            `json:"model" mapstructure:"model"`
+	Object  string            `json:"object" mapstructure:"object"`         // e.g., "chat.completion.chunk"
+	Usage   *Usage            `json:"usage,omitempty" mapstructure:"usage"` // Often nil until the last chunk
+	Error   *Error            `json:"error,omitempty"`                      // For potential error messages within the stream
+	// Azure specific prompt filter result
+	PromptFilterResults []PromptFilterResults `json:"prompt_filter_results,omitempty" mapstructure:"prompt_filter_results"`
+}
+
+// IsValid checks if the stream item is valid and handles special cases like Azure prompt filters or embedded errors.
+func (si *StreamItem) IsValid() error {
+	// Azure returns prompt filter results in the first chunk without an ID.
+	if len(si.PromptFilterResults) > 0 && si.Id == "" {
+		// This is a valid Azure prompt filter result chunk, treat as valid but maybe skip processing content.
+		return nil
+	}
+	// Check if it's an error message embedded in the stream
+	if si.Error != nil {
+		// This is an error chunk
+		return si.Error
+	}
+	// For a regular data chunk, ID and Choices are expected.
+	// Allow chunks with nil/empty choices (like finish chunks) but require Id.
+	if si.Id == "" {
+		// Use the helper function to create a standard error
+		return NewError("", "Stream item missing ID", "invalid_stream_data", nil)
+	}
+	// No error found
+	return nil
+}
+
+// Embedding represents a single embedding vector.
+type Embedding struct {
+	Index     int       `json:"index"`
+	Object    string    `json:"object"` // e.g., "embedding"
+	Embedding []float64 `json:"embedding"`
+}
+
+// EmbeddingsResponse represents the response structure for embedding requests.
+type EmbeddingsResponse struct {
+	Object string      `json:"object"` // e.g., "list"
+	Data   []Embedding `json:"data"`
+	Model  string      `json:"model"`
+	Usage  Usage       `json:"usage"`
 }
 
 type Usage struct {
@@ -73,15 +114,18 @@ type ResMessage struct {
 }
 
 type StreamingChoice struct {
-	FinishReason string `json:"finish_reason"`
-	Delta        *Delta `json:"delta"`
+	Index        int    `json:"index" mapstructure:"index"` // Add index to streaming choice
+	FinishReason string `json:"finish_reason,omitempty" mapstructure:"finish_reason"`
+	Delta        *Delta `json:"delta" mapstructure:"delta"`
+	// azure才有
+	ContentFilterResults *ContentFilterResults `json:"content_filter_results,omitempty" mapstructure:"content_filter_results"`
 }
 
 type Delta struct {
-	Content      string        `json:"content"`
-	Role         string        `json:"role"`
-	ToolCalls    []ToolCall    `json:"tool_calls"`
-	FunctionCall *FunctionCall `json:"function_call"`
+	Content      string        `json:"content,omitempty" mapstructure:"content"`
+	Role         string        `json:"role,omitempty" mapstructure:"role"`
+	ToolCalls    []ToolCall    `json:"tool_calls,omitempty" mapstructure:"tool_calls"`
+	FunctionCall *FunctionCall `json:"function_call,omitempty" mapstructure:"function_call"`
 }
 
 type ToolCall struct {

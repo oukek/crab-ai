@@ -11,18 +11,17 @@ import (
 type ChatChains struct {
 	Context *chains.Context[*ChatChains]
 
-	Req *_type.Request
+	Req *_type.ChatRequest
 	Res *_type.Response
 
 	Provider model.Provider `json:"provider"`
 }
 
-func (c *ChatChains) Chat(req *_type.Request) (*_type.Response, error) {
+func (c *ChatChains) Chat(req *_type.ChatRequest) (*_type.Response, error) {
 	c.Req = req
 
 	c.Context.Reset(-1)
 
-	c.Context.Use(MakeRequest)
 	c.Context.Use(Chat)
 
 	err := c.Context.Next(c)
@@ -30,7 +29,7 @@ func (c *ChatChains) Chat(req *_type.Request) (*_type.Response, error) {
 	return c.Res, err
 }
 
-func (c *ChatChains) ChatWithStream(ctx *gin.Context, req *_type.Request) (*_type.Response, error) {
+func (c *ChatChains) ChatWithStream(ctx *gin.Context, req *_type.ChatRequest) (*_type.Response, error) {
 	c.Req = req
 
 	c.Context.Reset(-1)

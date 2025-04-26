@@ -1,16 +1,93 @@
 package llm
 
 import (
-	"encoding/json"
+	"bytes"
+	"context"
+
+	// "encoding/json" // 不再需要直接处理 JSON map
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
 	"oukek/crab-ai/app/common"
-	_type "oukek/crab-ai/app/service/llm/type"
 )
 
 func Chat(chains *ChatChains) error {
+	defaultError := errors.New("服务器异常，请联系客服")
+
+	// 1. 获取 Provider 实例
+	llmProvider, err := GetProvider(chains.Provider.Type)
+	if err != nil {
+		common.BaseLogger.WithError(err).Errorf("获取 Provider 失败: %s", chains.Provider.Type)
+		return defaultError // 或者返回更具体的错误
+	}
+
+	// 2. 使用 Provider 构建请求参数
+	reqParams, err := llmProvider.MakeChatRequest(context.Background(), &chains.Provider, chains.Req)
+	if err != nil {
+		common.BaseLogger.WithError(err).Error("构建聊天请求失败")
+		// 尝试使用 Provider 的错误处理
+		return llmProvider.HandleError(context.Background(), fmt.Errorf("构建聊天请求失败: %w", err), nil, nil)
+	}
+
+	// 3. 创建 HTTP 请求
+	httpReq, err := http.NewRequest(reqParams.Method, reqParams.URL, bytes.NewReader(reqParams.Body))
+	if err != nil {
+		common.BaseLogger.WithError(err).Error("创建 HTTP 请求失败")
+		return defaultError
+	}
+	// 设置请求头
+	for key, value := range reqParams.Headers {
+		httpReq.Header.Set(key, value)
+	}
+
+	// 4. 发送 HTTP 请求
+	common.BaseLogger.Infof("发送请求到: %s", httpReq.URL)
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		common.BaseLogger.WithError(err).Error("发送 HTTP 请求失败")
+		// 尝试使用 Provider 的错误处理
+		return llmProvider.HandleError(context.Background(), fmt.Errorf("发送 HTTP 请求失败: %w", err), nil, nil)
+	}
+	defer httpResp.Body.Close()
+
+	// 5. 读取响应体
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		common.BaseLogger.WithError(err).Error("读取响应体失败")
+		// 尝试使用 Provider 的错误处理
+		return llmProvider.HandleError(context.Background(), fmt.Errorf("读取响应体失败: %w", err), httpResp, nil)
+	}
+
+	// 6. 检查 HTTP 状态码 (通用检查)
+	if httpResp.StatusCode != http.StatusOK {
+		common.BaseLogger.WithField("status", httpResp.StatusCode).WithField("body", string(body)).Errorf("收到非 200 OK 状态码: %d", httpResp.StatusCode)
+		// 尝试使用 Provider 的错误处理，传入状态码错误
+		err = fmt.Errorf("HTTP 错误: %d %s", httpResp.StatusCode, http.StatusText(httpResp.StatusCode))
+		return llmProvider.HandleError(context.Background(), err, httpResp, body)
+	}
+
+	// 7. 使用 Provider 解析响应体
+	commonResponse, err := llmProvider.ParseChatResponse(context.Background(), body)
+	if err != nil {
+		common.BaseLogger.WithError(err).WithField("body", string(body)).Error("解析聊天响应失败")
+		// 尝试使用 Provider 的错误处理
+		return llmProvider.HandleError(context.Background(), fmt.Errorf("解析聊天响应失败: %w", err), httpResp, body)
+	}
+
+	// 8. 将通用响应设置到 chains
+	chains.Res = commonResponse
+
+	// 不再需要设置原始 res map
+	// chains.Set("res", res)
+
+	return nil
+}
+
+/*
+// 原有的 chat 函数逻辑
+func Chat_old(chains *ChatChains) error {
 	defaultError := errors.New("服务器异常，请联系客服")
 
 	req, ok := chains.Get("req")
@@ -79,3 +156,4 @@ func Chat(chains *ChatChains) error {
 
 	return nil
 }
+*/
